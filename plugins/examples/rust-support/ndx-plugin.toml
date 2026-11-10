@@ -1,0 +1,28 @@
+[plugin]
+id = "rust-support"
+name = "Rust Support"
+version = "1.0.2"
+author = "NDX Examples"
+description = "Rust language integration (declarative: runs no code)"
+ndx_version = ">=1.0.0"
+
+[plugin.type]
+category = "language"
+
+[language]
+name = "Rust"
+extensions = [".rs"]
+lexer = "rust"
+comment = "//"
+keywords = ["fn", "let", "mut", "impl", "struct", "enum", "match", "pub", "use", "mod", "trait"]
+
+[compiler]
+command = "rustc"
+build = "rustc {file} -o {out}"
+run = "{out}"
+
+[features]
+syntax_highlighting = true
+autocomplete = true
+diagnostics = false
+terminal = true

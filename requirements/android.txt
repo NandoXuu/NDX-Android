@@ -1,0 +1,13 @@
+# Packed INTO the APK. buildozer.spec `requirements` must match this file (tests/test_build_config.py enforces it).
+# Keep it small: every entry grows the APK. Anything big is a downloadable tool (requirements/downloadable.md).
+python3==3.11.5
+hostpython3==3.11.5
+kivy==2.3.0
+kivymd==1.2.0
+pillow
+pygments
+pyjnius
+plyer
+packaging
+certifi
+psutil

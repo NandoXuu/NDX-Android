@@ -1,0 +1,2 @@
+# Default = desktop development environment. Other sets: requirements/android.txt (APK), optional.txt, downloadable.md
+-r requirements/desktop.txt

@@ -1,0 +1,5 @@
+# Optional Python packages. NOT packed in the APK; install them in a venv / Linux environment / Termux
+# when you want the matching feature. NDX works (with honest "unavailable" states) without them.
+# python-lsp-server    # Python language server (or install it as an NDX tool in a Linux environment)
+# pytest               # run your own project's tests
+# black                # formatter

@@ -1,0 +1,15 @@
+[plugin]
+id = "solarized-theme"
+name = "Solarized Dark"
+version = "1.0.0"
+author = "NDX Examples"
+description = "Editor color theme (declarative)"
+ndx_version = ">=1.0.0"
+
+[plugin.type]
+category = "theme"
+
+[theme]
+pygments_style = "solarized-dark"
+background = "#002b36"
+foreground = "#839496"

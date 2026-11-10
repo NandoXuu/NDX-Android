@@ -1,0 +1,4 @@
+<!-- Android 11+ package visibility: NDX probes and sends RUN_COMMAND intents to Termux. -->
+<queries>
+    <package android:name="com.termux" />
+</queries>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="ndx_spacing_s">8dp</dimen>
+    <dimen name="ndx_spacing_m">16dp</dimen>
+    <dimen name="ndx_spacing_l">24dp</dimen>
+    <dimen name="ndx_corner_radius">16dp</dimen>
+    <dimen name="ndx_icon_size">24dp</dimen>
+</resources>

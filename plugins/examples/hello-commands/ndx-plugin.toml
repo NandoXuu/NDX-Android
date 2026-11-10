@@ -1,0 +1,17 @@
+[plugin]
+id = "hello-commands"
+name = "Hello Commands"
+version = "1.0.0"
+author = "NDX Examples"
+description = "Registers a `hello` command in the NDX console (contains Python code)"
+ndx_version = ">=1.0.0"
+
+[plugin.type]
+category = "integration"
+
+[permissions]
+request = ["terminal.command", "event.subscribe"]
+
+[entry]
+module = "main.py"
+class = "Plugin"
