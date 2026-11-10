@@ -10,4 +10,3 @@ pyjnius
 plyer
 packaging
 certifi
-psutil

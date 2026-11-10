@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 STDLIB = set(sys.stdlib_module_names)
 # import name -> requirements name
 IMPORT_TO_DIST = {"kivy": "kivy", "kivymd": "kivymd", "PIL": "pillow", "pygments": "pygments", "jnius": "pyjnius",
-                  "plyer": "plyer", "packaging": "packaging", "certifi": "certifi", "psutil": "psutil",
+                  "plyer": "plyer", "packaging": "packaging", "certifi": "certifi",
                   "android": "pyjnius"}      # `android` is provided by python-for-android itself
 
 
