@@ -59,9 +59,6 @@ jobs:
           PIP_CONSTRAINT: ${{ runner.temp }}/pip-constraints.txt
         run: buildozer -v android debug
 
-      - name: Verify APK resources
-        run: python tools/verify_apk_resources.py bin/*.apk
-
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
@@ -69,3 +66,7 @@ jobs:
           path: bin/*.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Verify APK resources
+        run: python tools/verify_apk_resources.py bin/*.apk
+
