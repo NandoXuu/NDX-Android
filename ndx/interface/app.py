@@ -78,9 +78,6 @@ class NDXApp(MDApp):
     def _compose(self, reuse=False):
         old = dict(self.screens)
         self.sm = ScreenManager(transition=FadeTransition(duration=0.12))
-        self.topbar = MDTopAppBar(title="NDX", elevation=0, md_bg_color=T.c("surface"),
-                                  specific_text_color=T.c("text"),
-                                  left_action_items=[["console-line", lambda *_: self.go("home")]])
         for cls in ALL:
             if reuse and cls in (EditorScreen, TerminalScreen) and cls.key in old:
                 scr = old[cls.key]
@@ -90,6 +87,9 @@ class NDXApp(MDApp):
                 scr = cls(self)
             self.screens[cls.key] = scr
             self.sm.add_widget(scr)
+        self.topbar = MDTopAppBar(title="NDX", elevation=0, md_bg_color=T.c("surface"),
+                                  specific_text_color=T.c("text"),
+                                  left_action_items=[["console-line", lambda *_: self.go("home")]])
         self.root_box.add_widget(self.topbar)
         self.body = MDBoxLayout(orientation="horizontal")
         self.rail_items, self.bar_items = {}, {}

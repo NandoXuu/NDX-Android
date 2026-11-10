@@ -13,14 +13,44 @@ LINUX_PATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 
 def find_proot(bin_dir, toolchain=None):
-    """Executable resolution goes through the Toolchain Manager (managed install, external dirs, system...).
-    The bare PATH/bin_dir search is only the fallback when no toolchain exists (stand-alone use)."""
+    """Find PRoot under its canonical name or common static-build filenames.
+
+    Toolchain resolution remains first. The aliases are accepted for manually
+    supplied/static builds and are normalized by returning the actual path.
+    """
     if toolchain is None:
         from ..toolchain_manager import active
         toolchain = active()
+
+    # Canonical catalog entry first; this preserves the managed toolchain policy.
     if toolchain is not None:
-        return toolchain.resolve_path("proot")
-    return which("proot", [bin_dir])
+        try:
+            found = toolchain.resolve_path("proot")
+            if found:
+                return found
+        except Exception:
+            pass
+
+    names = ("proot", "proot_static", "proot-static", "proot-static-aarch64",
+             "proot-static-arm64", "proot-aarch64", "proot-arm64")
+    dirs = [Path(bin_dir)]
+    if toolchain is not None:
+        tools_dir = getattr(toolchain, "tools_dir", None)
+        if tools_dir:
+            current = Path(tools_dir) / "proot" / "current"
+            dirs.extend((current, current / "bin", current / "usr" / "bin"))
+    for directory in dirs:
+        for name in names:
+            candidate = directory / name
+            if candidate.is_file() and os.access(str(candidate), os.X_OK):
+                return str(candidate)
+
+    # Last-resort PATH lookup is retained for standalone use.
+    for name in names:
+        found = which(name, [bin_dir])
+        if found:
+            return found
+    return None
 
 
 def build_login_argv(proot, rootfs, shell="/bin/sh", extra_binds=(), extra_env=None):

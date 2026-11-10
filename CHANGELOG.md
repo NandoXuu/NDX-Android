@@ -2,6 +2,7 @@
 
 ## 1.1.0 - remediation (unreleased, not device-tested)
 ### Added
+- Android runtime remediation: app-scoped external data directory with legacy-home migration/fallback, Android PTY `PYTHONPATH` injection, and PRoot static filename discovery (`proot_static` / `proot-static-aarch64`). Documented storage and network behavior in `docs/ANDROID_STORAGE.md`.
 - Expanded Android SAF bridge: persisted URI grants, document metadata, import/export helpers, tree listing/creation/deletion, and safer ContentResolver streaming. Updated `docs/ANDROID_SAF.md`; no broad storage permissions added.
 - Toolchain Manager wired into the Core: transactional install/update/remove/rollback, resolver with configurable priority and per-runtime PATHs, profiles, `ndx tool`, `ndx run`, `ndx.tools.run` (ToolRunner with consent).
 - Automatic PRoot install (`ndx tool install proot`, `ndx linux install --install-proot`, UI button); backend-first rule for Linux installs; `Check Linux Environment` (UI + `ndx linux check`).

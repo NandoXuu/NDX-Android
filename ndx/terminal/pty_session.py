@@ -8,8 +8,19 @@ import struct
 import subprocess
 import termios
 import threading
+from pathlib import Path
 
 from .vt import VTScreen
+
+
+def _inject_app_pythonpath(env):
+    """Ensure Android child shells can import the NDX package shipped with the app."""
+    if "ANDROID_ARGUMENT" in env or "ANDROID_PRIVATE" in env or "ANDROID_APP_PATH" in env:
+        app_root = str(Path(__file__).resolve().parents[2])
+        entries = [item for item in env.get("PYTHONPATH", "").split(os.pathsep) if item]
+        if app_root not in entries:
+            env["PYTHONPATH"] = os.pathsep.join([app_root] + entries)
+    return env
 
 
 class PtySession:
@@ -29,6 +40,8 @@ class PtySession:
         self._set_size(slave, self.screen.rows, self.screen.cols)
         env = dict(os.environ)
         env.update(self.env or {})
+        # A child shell launched by NDX must be able to import the bundled package.
+        _inject_app_pythonpath(env)
         env.setdefault("TERM", "xterm-256color")
         env["COLUMNS"], env["LINES"] = str(self.screen.cols), str(self.screen.rows)
 

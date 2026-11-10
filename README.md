@@ -15,7 +15,7 @@ local servers with resource budgets, AI runtime management, Android device toolk
 python -m unittest discover -s tests -t .
 ./build.sh                  # assets + tests + buildozer android debug + APK resource check
 ```
-Android: `android/extra_manifest.xml` declares Termux package visibility; `ndx.android_storage.AndroidSAF`
+Android: mutable data uses app-specific `Android/data/<package>/files` storage where available (see `docs/ANDROID_STORAGE.md`); `android/extra_manifest.xml` declares Termux package visibility; `ndx.android_storage.AndroidSAF`
 provides asynchronous document open/create/folder selection through Android's system picker. No broad storage
 permission is requested. See `docs/ANDROID_SAF.md`. GitHub Actions builds and uploads a debug APK artifact.
 

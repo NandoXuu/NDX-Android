@@ -12,7 +12,7 @@ from pathlib import Path
 from tests.helpers import CoreCase
 from ndx.core import ValidationError, NDXError
 from ndx.server_manager import ServerSpec
-from ndx.linux_manager.proot import extract_rootfs, build_login_argv
+from ndx.linux_manager.proot import extract_rootfs, build_login_argv, find_proot
 from ndx.application_framework import IpcServer, HeadlessBackend, PlatformServices, Window, Label, Button, VBox
 from ndx.android_toolkit import explorer, device_info, CrashLogStore, LogcatMonitor, AdbClient
 from ndx.android_toolkit.capabilities import AVAILABLE, UNSUPPORTED
@@ -221,3 +221,23 @@ class TestAndroidToolkit(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ProotFilenameTests(unittest.TestCase):
+    def test_static_proot_filename_is_discovered(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            binary = Path(tmp) / "proot_static"
+            binary.write_bytes(b"placeholder")
+            binary.chmod(0o755)
+            self.assertEqual(find_proot(tmp, toolchain=False), str(binary))
+
+    def test_aarch64_static_proot_filename_is_discovered(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            binary = Path(tmp) / "proot-static-aarch64"
+            binary.write_bytes(b"placeholder")
+            binary.chmod(0o755)
+            self.assertEqual(find_proot(tmp, toolchain=False), str(binary))
