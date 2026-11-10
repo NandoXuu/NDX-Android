@@ -94,7 +94,6 @@ class PythonRuntimeTests(unittest.TestCase):
         self.assertTrue(EmbeddedRunner._run_lock.acquire(timeout=1))
         try:
             import ndx.python_runtime.embedded as e
-            orig = threading.Lock.acquire
             r = EmbeddedRunner()
             # shorten wait: acquire with timeout=5 is inside; just assert flag behaviour via a patched lock
             class L:
