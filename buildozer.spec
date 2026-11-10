@@ -13,7 +13,7 @@ version = 1.0.0
 # MUST equal requirements/android.txt (checked by tests/test_build_config.py). KivyMD stays at 1.2.0.
 requirements = python3==3.11.5,hostpython3==3.11.5,kivy==2.3.0,kivymd==1.2.0,pillow,pygments,pyjnius,plyer,packaging,certifi,psutil
 
-orientation = all
+orientation = portrait,landscape
 fullscreen = 0
 
 # --- Visual resources -------------------------------------------------------
