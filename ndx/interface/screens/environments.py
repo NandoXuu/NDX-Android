@@ -8,9 +8,12 @@ from ...gui_compatibility import TOOLKITS, LinuxGuiBridge
 from ...linux_manager import DISTROS, LIMITATIONS
 from ...utilities import human_size
 from ..theme import T
-from ..widgets import (ResponsiveGrid, card, chip, column, confirm_dialog, form_dialog, icon, label,
+from ..widgets import (ResponsiveGrid, card, chip, column, confirm_dialog, field, form_dialog, icon, label,
                        message_dialog, primary_btn, row, text_btn, toast, divider)
 from .base import NDXScreen
+
+LANGUAGE_TOOLS = {"python": "python3", "lua": "lua", "c": "gcc", "cpp": "gcc", "rust": "rustc", "java": "jdk",
+                  "javascript": "node", "typescript": "node", "shell": "bash"}
 
 
 class EnvironmentsScreen(NDXScreen):
@@ -21,9 +24,12 @@ class EnvironmentsScreen(NDXScreen):
     def lm(self):
         return self.core.services.get("linux")
 
+    @property
+    def tc(self):
+        return self.core.services.get("toolchain")
+
     def render(self, body):
         sv = self.core.services
-        # ---- Linux
         body.add_widget(label("Linux environments (PRoot)", "H6"))
         c = card()
         avail = self.lm.backend.available()
@@ -63,25 +69,40 @@ class EnvironmentsScreen(NDXScreen):
         for did, d in DISTROS.items():
             r = row(size_hint_y=None, height=dp(40))
             r.add_widget(label(d["name"], "Body2", adaptive_height=False, valign="middle"))
-            r.add_widget(text_btn("Download", lambda did=did: self.install(did)))
+            if d["url"]:
+                r.add_widget(text_btn("Download", lambda did=did: self.install(did)))
+            else:
+                r.add_widget(text_btn("From URL", lambda did=did: self.install_url(did)))
             r.add_widget(text_btn("From file", lambda did=did: self.install_file(did), "muted"))
             ic.add_widget(r)
-        ic.add_widget(label("Downloads ask for confirmation and need a large amount of storage.", "Caption", "muted"))
+        ic.add_widget(label("Downloads ask for confirmation and need storage. Distributions without a built-in link "
+                            "(Debian) take an https rootfs URL or a local tarball.", "Caption", "muted"))
         body.add_widget(ic)
 
-        # ---- host
+        body.add_widget(label("Tool installer", "H6"))
+        ic = card()
+        ic.add_widget(label("One tap installs a tool or a whole profile. Tools that run in Linux use the first "
+                            "environment you installed.", "Caption", "muted"))
+        self.tool_search = field("Search tools, languages or capabilities")
+        ic.add_widget(self.tool_search)
+        self.tool_box = column()
+        ic.add_widget(self.tool_box)
+        self.tool_search.bind(text=lambda _inst, txt: self._fill_tools(txt))
+        body.add_widget(ic)
+        self._fill_tools(self.tool_search.text)
+
         body.add_widget(label("Host shell environment", "H6"))
         sh = sv.get("shell")
         c = card()
         c.add_widget(label("Shells: " + (", ".join(sh.shells) or "none found"), "Body2"))
         found = [u for u, p in sh.utils.items() if p]
-        c.add_widget(label("Utilities: " + (", ".join(found) or "none found"), "Body2"))
+        c.add_widget(label("Utilities (%d of %d): %s" % (len(found), len(sh.utils), ", ".join(found) or "none found"),
+                           "Body2"))
         c.add_widget(label("Missing: " + ", ".join(u for u, p in sh.utils.items() if not p), "Caption", "muted"))
         c.add_widget(label("The Android host has only a minimal shell. Install a Linux environment above for git, gcc, "
                            "zsh, vim and more. Termux is a separate app: NDX can only run commands there if you enable the optional integration in Settings.", "Caption", "muted"))
         body.add_widget(c)
 
-        # ---- languages
         body.add_widget(label("Languages & toolchains", "H6"))
         langs = sv.get("languages")
         grid2 = ResponsiveGrid(min_item_dp=280)
@@ -97,9 +118,13 @@ class EnvironmentsScreen(NDXScreen):
                 cd.add_widget(label("%s: %s" % (t, p or "not found"), "Caption", "muted"))
             if l.environment:
                 cd.add_widget(label(l.environment, "Caption", "muted"))
+            tool = LANGUAGE_TOOLS.get(l.id)
+            if st and not ok and tool:
+                cd.add_widget(text_btn("Install " + tool, lambda tid=tool: self.install_tool(tid)))
             grid2.add_widget(cd)
+        body.add_widget(label("\"ready\" means available on the Android host. Tools installed by the installer run "
+                              "inside a Linux environment: use a PRoot target to build and run them.", "Caption", "muted"))
 
-        # ---- GUI compatibility
         body.add_widget(label("GUI toolkit compatibility", "H6"))
         gb = LinuxGuiBridge(self.core.paths.bin).status()
         c = card()
@@ -116,7 +141,90 @@ class EnvironmentsScreen(NDXScreen):
                 cd.add_widget(label(t["note"], "Caption", "muted"))
             grid3.add_widget(cd)
 
-    # ---- actions
+    def _first_env(self):
+        envs = self.lm.list()
+        return envs[0]["id"] if envs else None
+
+    def _fill_tools(self, query):
+        self.tool_box.clear_widgets()
+        tc = self.tc
+        if tc is None:
+            self.tool_box.add_widget(label("The Toolchain Manager is not available.", "Body2", "warn"))
+            return
+        q = (query or "").strip().lower()
+        if not q:
+            for name, p in tc.profiles().items():
+                pr = row(size_hint_y=None, height=dp(40))
+                pr.add_widget(label("Profile: " + p["title"], "Body2", adaptive_height=False, valign="middle"))
+                pr.add_widget(text_btn("Install profile", lambda n=name: self.install_profile(n)))
+                self.tool_box.add_widget(pr)
+            self.tool_box.add_widget(divider())
+        shown = 0
+        for r in tc.list():
+            hay = " ".join([r["id"], r["name"]] + list(r["capabilities"] or [])).lower()
+            if q and q not in hay:
+                continue
+            self.tool_box.add_widget(self._tool_row(r))
+            shown += 1
+        if not shown:
+            self.tool_box.add_widget(label("No tool matches \"%s\"." % (query or "").strip(), "Caption", "muted"))
+
+    def _tool_row(self, r):
+        installed = bool(r["installed"])
+        cd = row(size_hint_y=None, height=dp(44), spacing=dp(6))
+        cd.add_widget(label("%s  [color=%s](%s)[/color]" % (r["name"], T.hex("muted"), r["id"]), "Body2",
+                            adaptive_height=False, valign="middle"))
+        cd.add_widget(chip("installed" if installed else "missing", "ok" if installed else "muted"))
+        if installed:
+            scope = sorted(r["installed"])[0]
+            cd.add_widget(text_btn("Remove", lambda tid=r["id"], s=scope: self.remove_tool(tid, s), "error"))
+        else:
+            cd.add_widget(primary_btn("Install", lambda tid=r["id"]: self.install_tool(tid)))
+        return cd
+
+    def _run_job(self, fn, name, ok_text):
+        toast("Working: " + name)
+        self.core.tasks.submit(fn, name=name,
+                               on_done=lambda _res: (toast(ok_text), self.rebuild()),
+                               on_error=lambda ex: message_dialog("Failed: " + name, str(ex)))
+
+    def install_tool(self, tid):
+        tc, env = self.tc, self._first_env()
+        self._run_job(lambda: tc.install(tid, env=env, confirm=True), "install " + tid, "%s installed" % tid)
+
+    def remove_tool(self, tid, scope):
+        tc = self.tc
+        confirm_dialog("Remove %s?" % tid, "Remove %s from %s." % (tid, scope),
+                       lambda: self._run_job(lambda: tc.remove(tid, scope=scope, confirmed=True), "remove " + tid,
+                                             "%s removed" % tid), "Remove", danger=True)
+
+    def install_profile(self, name):
+        tc = self.tc
+        try:
+            plan = tc.plan_profile(name)
+        except NDXError as ex:
+            message_dialog("Profile", str(ex))
+            return
+        lines = ["Estimated size: %s" % plan["estimate_text"]]
+        lines += ["• %s%s" % (t["id"], " (already installed)" if t["installed"] else "") for t in plan["tools"]]
+        if plan["fits"] is False:
+            lines.append("Not enough free storage for this profile.")
+        env = self._first_env()
+        confirm_dialog("Install %s?" % plan["title"], "\n".join(lines),
+                       lambda: self.core.tasks.submit(lambda: tc.install_profile(name, env=env, confirm=True),
+                                                      name="profile " + name,
+                                                      on_done=lambda res: self._profile_done(name, res),
+                                                      on_error=lambda ex: message_dialog("Profile failed", str(ex))),
+                       "Install")
+
+    def _profile_done(self, name, res):
+        failed = res.get("failed") or {}
+        text = "Installed %d tool(s)." % len(res.get("installed") or [])
+        if failed:
+            text += "\n\nFailed:\n" + "\n".join("• %s: %s" % (k, v) for k, v in failed.items())
+        message_dialog("Profile " + name, text)
+        self.rebuild()
+
     def open_shell(self, e):
         try:
             prof = self.lm.profile(e["id"])
@@ -127,7 +235,7 @@ class EnvironmentsScreen(NDXScreen):
         self.app.screen("terminal").new_shell(prof)
 
     def install_proot(self):
-        tc = self.core.services.get("toolchain")
+        tc = self.tc
         if tc is None:
             message_dialog("Toolchain unavailable", "The Toolchain Manager is not available.")
             return
@@ -153,11 +261,15 @@ class EnvironmentsScreen(NDXScreen):
                                on_done=lambda t: message_dialog("Linux environment check", t),
                                on_error=lambda ex: message_dialog("Check failed", str(ex)))
 
-    def install(self, distro):
+    def install(self, distro, url=None):
         toast("Starting download...")
-        self.core.tasks.submit(lambda: self.lm.install(distro, auto_install_proot=True), name="install " + distro,
+        self.core.tasks.submit(lambda: self.lm.install(distro, url=url, auto_install_proot=True), name="install " + distro,
                                on_done=lambda _: (self._register_targets(), self.rebuild()),
                                on_error=lambda ex: message_dialog("Install failed", str(ex)))
+
+    def install_url(self, distro):
+        form_dialog("Install from URL", [("url", "https://.../rootfs.tar.gz", "")],
+                    lambda v: self.install(distro, url=v["url"].strip() or None), "Install")
 
     def install_file(self, distro):
         form_dialog("Install from tarball", [("path", "Path to rootfs .tar/.tar.gz", "")],

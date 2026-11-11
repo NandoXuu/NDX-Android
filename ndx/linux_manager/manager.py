@@ -261,7 +261,7 @@ class LinuxManager(Module):
         else:
             note = "backend check skipped"
         # 4: storage
-        need = int((info["download_size"] + 2 * info["installed_size"]) * 1.2)
+        need = int((info["download_size"] + info["installed_size"]) * 1.2)
         if archive:
             try:
                 need = int(os.path.getsize(archive) * 4)

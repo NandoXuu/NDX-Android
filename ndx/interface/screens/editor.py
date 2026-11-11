@@ -509,11 +509,8 @@ class EditorScreen(NDXScreen):
             except Exception:
                 source = ""
 
-            is_kivy = (
-                ("kivy.app import App" in source or
-                 "kivymd.app import MDApp" in source)
-                and ".run()" in source
-            )
+            from ...python_runtime.embedded import looks_like_kivy
+            is_kivy = looks_like_kivy(source) and (".run()" in source or "runTouchApp(" in source)
 
             if is_kivy:
                 try:
@@ -524,7 +521,7 @@ class EditorScreen(NDXScreen):
                     self.app.gui_session.start(cur.path, self.project.path, label_)
                 except Exception as exc:
                     self.output_lines.append(
-                        "[NDX GUI ERROR] %s\\n" % exc
+                        "[NDX GUI ERROR] %s\n" % exc
                     )
                     self.show_output = True
 

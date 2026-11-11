@@ -7,8 +7,15 @@ from ..core.registry import Module
 from ..toolchain_manager.manager import host_which as which
 
 SHELLS = ["bash", "zsh", "fish", "sh", "ash"]
-UTILITIES = ["git", "curl", "wget", "ssh", "make", "cmake", "gcc", "clang", "grep", "find", "tree", "tar",
-             "zip", "unzip", "less", "vim", "nano", "top", "htop", "busybox", "ranger", "yazi"]
+UTILITIES = [
+    "ls", "cp", "mv", "rm", "mkdir", "rmdir", "ln", "chmod", "chown", "touch", "stat", "readlink", "realpath",
+    "dirname", "basename", "cat", "head", "tail", "tr", "cut", "sort", "uniq", "wc", "tee", "xargs", "seq", "yes",
+    "grep", "egrep", "sed", "awk", "diff", "patch", "find", "tree", "date", "sleep", "env", "id", "uname", "whoami",
+    "hostname", "pwd", "which", "df", "du", "free", "ps", "top", "htop", "kill", "tar", "gzip", "gunzip", "bzip2",
+    "xz", "zip", "unzip", "md5sum", "sha256sum", "base64", "less", "more", "vi", "vim", "nano", "ping", "nc",
+    "netstat", "ip", "ssh", "scp", "curl", "wget", "git", "make", "cmake", "gcc", "clang", "busybox", "toybox",
+    "ranger", "yazi",
+]
 
 
 @dataclass
@@ -71,6 +78,10 @@ class ShellEnvironment(Module):
                 argv = [path, "-i"]
             env = dict(self.env_provider() or {}) if self.env_provider else {}
             env.update(self.env_vars)
+            env.setdefault("HOME", str(self.paths.base))
+            env.setdefault("TERM", "xterm-256color")
+            env.setdefault("PATH", "/system/bin:/system/xbin:/vendor/bin:/sbin")
+            env.setdefault("PS1", "ndx $PWD $ ")
             out.append(ShellProfile("host-" + name, name + " (Android host)", argv, "android",
                                     env, cwd or str(self.paths.base)))
         return out + self.user_profiles

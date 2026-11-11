@@ -282,7 +282,7 @@ class EmbeddedKivySession:
             self.saved_children = []
 
             self._cleanup()
-            self._emit("[NDX] Kivy GUI stopped. Returned to editor.\\n")
+            self._emit("[NDX] Kivy GUI stopped. Returned to editor.\n")
 
         finally:
             self._stopping = False

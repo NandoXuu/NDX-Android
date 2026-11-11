@@ -29,15 +29,69 @@ class HomeScreen(NDXScreen):
     title = "NDX"
     refresh_interval = 3
 
+    def __init__(self, app, **kw):
+        super().__init__(app, **kw)
+        self._sig = None
+        self._live = None
+
     def actions(self):
         return [["refresh", lambda *_: self.rebuild()]]
 
+    def refresh(self):
+        if self._live is None or self._signature() != self._sig:
+            self.rebuild()
+        else:
+            self._apply_metrics(self._live)
+
+    def _signature(self):
+        core = self.core
+        sv = core.services
+        term = sv.get("terminal")
+        return (
+            tuple(p.path for p in sv.get("projects").recent()),
+            tuple(r.spec.name for r in sv.get("servers").running()),
+            tuple(e["id"] for e in sv.get("linux").list()),
+            tuple(term.activity[-4:]),
+            sum(1 for s in term.sessions.values() if s.alive()),
+            len(core.tasks.active()),
+            tuple((m.name, m.status) for m in core.modules.all()),
+            tuple(r[3] for r in core.logs.recent(50) if r[1] in ("WARNING", "ERROR"))[-3:],
+            sv.get("linux").backend.available(),
+        )
+
+    def _metrics(self):
+        mon = self.core.services.get("monitor")
+        return mon.memory(), mon.cpu_percent(), mon.storage(), mon.battery(), mon.temperature()
+
+    def _apply_metrics(self, live):
+        mem, cpu, st, bat, tmp = self._metrics()
+        pct = mem["percent"]["value"]
+        live["ram"].text = "RAM: %s of %s%s" % (
+            "%.0f%%" % pct if pct is not None else "n/a",
+            human_size(mem["total"]["value"]) if mem["total"]["value"] else "n/a",
+            _quality(mem["percent"]["quality"]))
+        live["ram_bar"].value = pct or 0
+        live["cpu"].text = "CPU: %s%s" % ("%.0f%%" % cpu["value"] if cpu["value"] is not None else "n/a",
+                                          _quality(cpu["quality"]))
+        total = st["total"]["value"]
+        if total:
+            used = st["used"]["value"]
+            live["storage"].text = "Storage: %s used / %s total" % (human_size(used), human_size(total))
+            live["storage_bar"].value = 100.0 * used / total
+        else:
+            live["storage"].text = "Storage: n/a"
+            live["storage_bar"].value = 0
+        live["battery"].text = "Battery: %s   Temperature: %s%s" % (
+            "%s%%" % bat["percent"]["value"] if bat["percent"]["value"] is not None else "n/a",
+            "%.0f C" % tmp["value"] if tmp["value"] is not None else "n/a", _quality(tmp["quality"]))
+
     def render(self, body):
+        self._sig = self._signature()
+        self._live = {}
         core, sv = self.core, self.core.services
         grid = ResponsiveGrid(min_item_dp=320)
         body.add_widget(grid)
 
-        # ---- recent projects (horizontal carousel)
         c = _section("Recent projects", "folder-clock-outline")
         recents = sv.get("projects").recent()
         if recents:
@@ -58,29 +112,20 @@ class HomeScreen(NDXScreen):
             c.add_widget(primary_btn("New project", lambda: self.app.go("projects")))
         grid.add_widget(c)
 
-        # ---- resources
+        live = self._live
         c = _section("Device resources", "chip")
-        mon = sv.get("monitor")
-        mem, cpu, st, bat, tmp = mon.memory(), mon.cpu_percent(), mon.storage(), mon.battery(), mon.temperature()
-        pct = mem["percent"]["value"]
-        c.add_widget(label("RAM: %s of %s%s" % (
-            "%.0f%%" % pct if pct is not None else "n/a",
-            human_size(mem["total"]["value"]) if mem["total"]["value"] else "n/a", _quality(mem["percent"]["quality"])), "Body2"))
-        c.add_widget(MDProgressBar(value=pct or 0, color=T.c("accent"), size_hint_y=None, height=dp(4)))
-        c.add_widget(label("CPU: %s%s" % ("%.0f%%" % cpu["value"] if cpu["value"] is not None else "n/a",
-                                          _quality(cpu["quality"])), "Body2"))
-        if st["total"]["value"]:
-            used = 100.0 * st["used"]["value"] / st["total"]["value"]
-            c.add_widget(label("Storage: %s used / %s total" % (human_size(st["used"]["value"]),
-                                                              human_size(st["total"]["value"])), "Body2"))
-            c.add_widget(MDProgressBar(value=used, color=T.c("accent"), size_hint_y=None, height=dp(4)))
-        c.add_widget(label("Battery: %s   Temperature: %s%s" % (
-            "%s%%" % bat["percent"]["value"] if bat["percent"]["value"] is not None else "n/a",
-            "%.0f C" % tmp["value"] if tmp["value"] is not None else "n/a", _quality(tmp["quality"])), "Body2", "muted"))
+        live["ram"] = label("", "Body2")
+        live["ram_bar"] = MDProgressBar(color=T.c("accent"), size_hint_y=None, height=dp(4))
+        live["cpu"] = label("", "Body2")
+        live["storage"] = label("", "Body2")
+        live["storage_bar"] = MDProgressBar(color=T.c("accent"), size_hint_y=None, height=dp(4))
+        live["battery"] = label("", "Body2", "muted")
+        for key in ("ram", "ram_bar", "cpu", "storage", "storage_bar", "battery"):
+            c.add_widget(live[key])
         c.add_widget(label("GPU: not exposed to apps by Android", "Caption", "muted"))
+        self._apply_metrics(live)
         grid.add_widget(c)
 
-        # ---- languages & compilers
         langs = sv.get("languages")
         c = _section("Installed languages", "code-tags")
         ready = [l for l in langs.all() if l.tools and langs.is_ready(l)]
@@ -107,7 +152,6 @@ class HomeScreen(NDXScreen):
                            "Body2", "text" if tools else "muted"))
         grid.add_widget(c)
 
-        # ---- servers / linux / processes
         c = _section("Active servers", "server-network")
         run = sv.get("servers").running()
         if run:
@@ -130,8 +174,8 @@ class HomeScreen(NDXScreen):
 
         c = _section("Running processes", "cog-sync-outline")
         term = sv.get("terminal")
-        live = [s for s in term.sessions.values() if s.alive()]
-        c.add_widget(label("Terminal sessions: %d" % len(live), "Body2"))
+        live_sessions = [s for s in term.sessions.values() if s.alive()]
+        c.add_widget(label("Terminal sessions: %d" % len(live_sessions), "Body2"))
         c.add_widget(label("Servers: %d   Background tasks: %d" % (len(run), len(core.tasks.active())), "Body2"))
         grid.add_widget(c)
 

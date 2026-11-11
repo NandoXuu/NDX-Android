@@ -13,11 +13,31 @@ Limits (honest, documented in docs/PYTHON.md):
 import ctypes
 import io
 import os
+import re
 import runpy
 import sys
 import threading
 import time
 import traceback
+
+
+KIVY_IMPORT_RE = re.compile(
+    r"^\s*(?:from\s+kivy\w*(?:\.\w+)*\s+import|import\s+kivy\w*|from\s+kivymd\w*(?:\.\w+)*\s+import|import\s+kivymd\w*)",
+    re.M)
+KIVY_ERROR = ("Kivy windows must open on the main thread: run this file with the Run button in the editor "
+              "(embedded Kivy session), not as a background run.")
+
+
+def looks_like_kivy(source):
+    return bool(KIVY_IMPORT_RE.search(source or ""))
+
+
+def _read_head(path, limit=262144):
+    try:
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            return fh.read(limit)
+    except OSError:
+        return ""
 
 
 class Cancelled(BaseException):
@@ -75,6 +95,9 @@ class EmbeddedRunner:
         """-> dict(returncode, stdout, stderr, timed_out, cancelled, error). Never raises for script errors."""
         out_router, err_router = _install()
         res = {"returncode": None, "stdout": "", "stderr": "", "timed_out": False, "cancelled": False, "error": ""}
+        if looks_like_kivy(_read_head(script)):
+            res.update(returncode=1, error=KIVY_ERROR, stderr=KIVY_ERROR + "\n")
+            return res
         if not self._run_lock.acquire(timeout=5):
             res.update(returncode=1, error="the embedded Python runner is busy (another script is still running "
                                            "or could not be interrupted)")

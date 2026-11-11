@@ -247,7 +247,7 @@ class TestInstall(unittest.TestCase):
         self.assertGreater(plan["estimated_bytes"], 0)
         with self.assertRaises(ValidationError):
             self.tc.plan_profile("nope")
-        self.assertEqual(set(self.tc.profiles()), {"minimal", "python", "cpp", "rust", "android", "linux", "ai", "full"})
+        self.assertEqual(set(self.tc.profiles()), {"minimal", "python", "cpp", "rust", "android", "linux", "ai", "full", "gnu", "java"})
 
     def test_second_install_same_version_needs_force(self):
         self.e.publish()
