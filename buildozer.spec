@@ -11,7 +11,7 @@ version = 1.0.0
 # Only what the implemented modules import. Pillow/Pygments/psutil need p4a recipes (they exist);
 # requests is NOT used (urllib + certifi). Verify each on your p4a version: see docs/BUILD.md.
 # MUST equal requirements/android.txt (checked by tests/test_build_config.py). KivyMD stays at 1.2.0.
-requirements = python3==3.11.5,hostpython3==3.11.5,kivy==2.3.0,kivymd==1.2.0,pillow,pygments,pyjnius,plyer,packaging,certifi
+requirements = python3==3.11.5,hostpython3==3.11.5,kivy==2.3.0,kivymd==1.2.0,pillow,pygments,pyjnius,plyer,packaging,certifi,pip,wheel
 
 orientation = portrait,landscape
 fullscreen = 0
