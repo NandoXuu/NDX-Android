@@ -68,6 +68,9 @@ class EmbeddedPythonTarget(ExecutionTarget):
     def available(self):
         return True
 
+    def wrap(self, argv, cwd):
+        return list(argv), cwd
+
     def run_inline(self, argv, cwd, emit, cancel):
         if not argv or os.path.basename(argv[0]) not in ("python", "python3") or len(argv) < 2 or argv[1].startswith("-"):
             emit("error: the embedded runtime runs `python3 <script.py> [args]` only\n")
