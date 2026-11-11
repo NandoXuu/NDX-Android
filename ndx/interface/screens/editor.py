@@ -502,6 +502,35 @@ class EditorScreen(NDXScreen):
         for d in self.session.docs:
             if d.modified:
                 self.session.save(d)
+        cur = self.session.current()
+        if label_ == "run" and cur and cur.path.lower().endswith(".py"):
+            try:
+                source = Path(cur.path).read_text(encoding="utf-8")
+            except Exception:
+                source = ""
+
+            is_kivy = (
+                ("kivy.app import App" in source or
+                 "kivymd.app import MDApp" in source)
+                and ".run()" in source
+            )
+
+            if is_kivy:
+                try:
+                    from ...python_runtime.gui import EmbeddedKivySession
+                    if not hasattr(self.app, "gui_session"):
+                        self.app.gui_session = EmbeddedKivySession(self.app)
+
+                    self.app.gui_session.start(cur.path, self.project.path, label_)
+                except Exception as exc:
+                    self.output_lines.append(
+                        "[NDX GUI ERROR] %s\\n" % exc
+                    )
+                    self.show_output = True
+
+                self.build_ui()
+                return
+
         target = self.app.run_target
         for cfg in configs[:1]:
             root = "/project" if target.startswith("proot:") else self.project.path

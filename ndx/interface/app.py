@@ -167,6 +167,11 @@ class NDXApp(MDApp):
         self.go("editor")
 
     def _on_key(self, window, key, *args):
+        gui_session = getattr(self, "gui_session", None)
+        if key == 27 and gui_session and gui_session.active:
+            gui_session.stop()
+            return True
+
         if key == 27 and self.sm.current != "home":      # Android back button
             self.go("home")
             return True
