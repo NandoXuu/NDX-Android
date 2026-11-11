@@ -51,6 +51,19 @@ class LinuxCase(unittest.TestCase):
         self.paths = self.e.paths
         self.lm = LinuxManager(self.paths, self.e.bus, None, self.e.consent, None, toolchain=self.e.tc,
                                resources=self.e.resources, downloader=self.e.tc.downloader)
+
+        # Isolate tests from PRoot installed globally in Termux.
+        real_proot_path = self.lm.backend.path
+
+        def isolated_proot_path():
+            local = self.paths.bin / "proot"
+            if local.is_file() and os.access(str(local), os.X_OK):
+                return str(local)
+            if self.e.tc.registry.install_record("proot"):
+                return real_proot_path()
+            return None
+
+        self.lm.backend.path = isolated_proot_path
         self.tar = rootfs_tar(Path(self.e.tmp.name) / "rootfs.tar.gz")
 
     def tearDown(self):

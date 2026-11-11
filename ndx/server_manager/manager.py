@@ -33,7 +33,7 @@ class ServerSpec:
     port: int = 8080
     env: dict = field(default_factory=dict)
     allow_external: bool = False
-    ram_mb: int = 256                     # budget (accounting); RLIMIT_AS is applied to external processes
+    ram_mb: int = 256                     # RAM budget (reservation and monitoring; not a hard OS limit)
     threads: int = 2                      # advisory (OMP/…_NUM_THREADS)
     nice: int = 0
     max_concurrency: int = 8
@@ -197,24 +197,30 @@ class ServerManager(Module):
         env.update({"HOST": spec.host, "PORT": str(spec.port), "OMP_NUM_THREADS": str(spec.threads),
                     "RAYON_NUM_THREADS": str(spec.threads), "GOMAXPROCS": str(spec.threads)})
 
-        def limits():
-            import resource
-            os.setsid()
-            if spec.nice:
-                os.nice(spec.nice)
-            if spec.ram_mb > 0:
-                lim = spec.ram_mb * 1024 * 1024 * 4    # address-space, not RSS: generous factor
-                resource.setrlimit(resource.RLIMIT_AS, (lim, lim))
-
-        rt.proc = subprocess.Popen(spec.command, cwd=spec.cwd or None, env=env, stdout=subprocess.PIPE,
-                                   stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, text=True,
-                                   bufsize=1, preexec_fn=limits)
+        rt.proc = subprocess.Popen(
+            spec.command,
+            cwd=spec.cwd or None,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            stdin=subprocess.DEVNULL,
+            text=True,
+            bufsize=1,
+            start_new_session=True,
+        )
         threading.Thread(target=self._pump, args=(rt, rt.proc), daemon=True).start()
 
     def _pump(self, rt, proc):
-        for line in proc.stdout:
-            rt.log(line)
-        code = proc.wait()
+        try:
+            if proc.stdout is not None:
+                with proc.stdout:
+                    for line in proc.stdout:
+                        rt.log(line)
+            code = proc.wait()
+        finally:
+            if proc.stdout is not None and not proc.stdout.closed:
+                proc.stdout.close()
+
         if rt.state == "running":
             rt.state = "stopped" if code == 0 else "failed"
             rt.error = "" if code == 0 else "exited with code %s" % code

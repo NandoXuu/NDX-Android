@@ -186,8 +186,12 @@ class ToolEnvironment:
             if not m or not m.env or not self.registry.install_record(tid):
                 continue
             rec = self.registry.install_record(tid)
-            d = str(self.resolver.tools_dir / tid / "current")
-            exe_dir = os.path.dirname(os.path.join(d, rec.get("exe_rel") or m.executable))
+            if rec.get("method") == "native_lib" and rec.get("path"):
+                d = os.path.dirname(os.path.abspath(rec["path"]))
+                exe_dir = d
+            else:
+                d = str(self.resolver.tools_dir / tid / "current")
+                exe_dir = os.path.dirname(os.path.join(d, rec.get("exe_rel") or m.executable))
             for k, v in m.env.items():
                 out[k] = v.replace("{dir}", d).replace("{exe_dir}", exe_dir).replace("{tmp}", self.tmp_dir())
         return out

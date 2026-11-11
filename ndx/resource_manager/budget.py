@@ -1,7 +1,7 @@
 """Global resource budgets and per-service request gates.
 
 Honesty note: budgets here are *accounting and admission control* done by NDX.
-Hard limits exist only where the OS enforces them (e.g. RLIMIT_AS)."""
+RAM budgets are advisory reservations and monitoring thresholds; hard limits require OS enforcement."""
 import contextlib
 import itertools
 import os

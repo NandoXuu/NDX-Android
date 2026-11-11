@@ -25,9 +25,9 @@ def find_proot(bin_dir, toolchain=None):
     # Canonical catalog entry first; this preserves the managed toolchain policy.
     if toolchain is not None:
         try:
-            found = toolchain.resolve_path("proot")
-            if found:
-                return found
+            resolved = toolchain.resolve("proot", runtime="host")
+            if resolved and resolved.kind in ("managed", "external"):
+                return resolved.path
         except Exception:
             pass
 
@@ -45,11 +45,14 @@ def find_proot(bin_dir, toolchain=None):
             if candidate.is_file() and os.access(str(candidate), os.X_OK):
                 return str(candidate)
 
-    # Last-resort PATH lookup is retained for standalone use.
-    for name in names:
-        found = which(name, [bin_dir])
-        if found:
-            return found
+    # Global PATH lookup is only allowed without a Toolchain Manager.
+    # This prevents unrelated host tools (e.g. Termux PRoot) from being
+    # mistaken for an NDX-managed installation.
+    if toolchain is None:
+        for name in names:
+            found = which(name, [bin_dir])
+            if found:
+                return found
     return None
 
 

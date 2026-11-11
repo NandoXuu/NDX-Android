@@ -144,8 +144,10 @@ class TestAI(CoreCase):
         m = ai.register("tiny", str(f), ctx=1024)
         self.assertEqual(m.format, "gguf")
         self.assertGreater(ai.estimate_ram_mb(m), 1)
-        with self.assertRaises(Exception):
-            ai.load(m.id)                              # llama-server not installed
+        from unittest.mock import patch
+        with patch("ndx.ai_runtime.manager.which", return_value=None):
+            with self.assertRaises(Exception):
+                ai.load(m.id)                          # engine unavailable
         with self.assertRaises(ValidationError):
             ai.register("nofile", "/nonexistent.gguf")
 

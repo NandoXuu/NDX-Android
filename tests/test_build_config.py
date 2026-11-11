@@ -95,10 +95,39 @@ class BuildConfigTests(unittest.TestCase):
         for d in ("tests", "docs", "tools", "projects", "environments", "data", "logs", "cache", "bin"):
             self.assertIn(d, ex)
 
-    def test_no_executable_binaries_are_bundled(self):
-        bad = [str(p.relative_to(ROOT)) for p in ROOT.rglob("*")
-               if p.is_file() and p.suffix in (".so", ".exe", ".elf", ".a") and "tests" not in p.parts]
-        self.assertEqual(bad, [])
+    def test_only_approved_proot_binaries_are_bundled(self):
+        allowed = {
+            "android-libs/arm64-v8a/libproot.so",
+            "android-libs/arm64-v8a/libproot-userland.so",
+            "android-libs/arm64-v8a/libproot-loader.so",
+            "android-libs/arm64-v8a/libproot-loader32.so",
+            "android-libs/armeabi-v7a/libproot.so",
+            "android-libs/armeabi-v7a/libproot-userland.so",
+            "android-libs/armeabi-v7a/libproot-loader.so",
+        }
+
+        found = {
+            str(path.relative_to(ROOT))
+            for path in ROOT.rglob("*")
+            if path.is_file()
+            and path.suffix in (".so", ".exe", ".elf", ".a")
+            and "tests" not in path.parts
+        }
+
+        self.assertEqual(found, allowed)
+
+        for relative in allowed:
+            path = ROOT / relative
+            data = path.read_bytes()
+            self.assertGreaterEqual(len(data), 20, relative)
+            self.assertEqual(data[:4], bytes((127, 69, 76, 70)), relative)
+
+            is_loader32 = "loader32" in relative
+            expected_class = 1 if is_loader32 or "armeabi-v7a" in relative else 2
+            expected_machine = 40 if expected_class == 1 else 183
+
+            self.assertEqual(data[4], expected_class, relative)
+            self.assertEqual(int.from_bytes(data[18:20], "little"), expected_machine, relative)
 
     def test_android_resources_listed_exist(self):
         listed = re.findall(r"%\(source\.dir\)s/(assets/android/res/[^:,]+):", spec()["android.add_resources"])

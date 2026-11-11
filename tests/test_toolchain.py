@@ -241,6 +241,7 @@ class TestInstall(unittest.TestCase):
         self.assertEqual(self.e.web.requests, [])              # nothing downloaded
 
     def test_profiles_plan_storage_and_unknown(self):
+        self.tc.is_installed = lambda tool, runtime=None: False
         plan = self.tc.plan_profile("cpp")
         self.assertIn("clang", [t["id"] for t in plan["tools"]])
         self.assertGreater(plan["estimated_bytes"], 0)

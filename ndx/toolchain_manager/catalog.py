@@ -49,7 +49,7 @@ CATALOG = [
         "executable": "bin/proot", "provides": ["proot"], "required": False,
         "capabilities": ["linux_environment"], "version_args": ["--version"],
         "version_regex": r"(\d+\.\d+(?:\.\d+)?)", "allowed_hosts": _PROOT_HOSTS,
-        "env": {"PROOT_LOADER": "{exe_dir}/loader", "PROOT_TMP_DIR": "{tmp}"},
+        "env": {"PROOT_TMP_DIR": "{tmp}"},
         "homepage": "https://github.com/green-green-avk/build-proot-android", "license": "GPL-2.0-or-later",
         "size_estimate": 6 * 1024 * 1024, "source_status": "unverified",
         "notes": "Needs a build made for Android (bionic or static + loader). Desktop-Linux binaries are rejected. "
@@ -59,7 +59,7 @@ CATALOG = [
             {"method": "download", "sources": {
                 "arm64-v8a": {"url": "https://raw.githubusercontent.com/green-green-avk/build-proot-android/master/packages/proot-android-aarch64.tar.gz",
                               "archive": "tar.gz", "size": 0, "installed_size": 6 * 1024 * 1024},
-                "armeabi-v7a": {"url": "https://raw.githubusercontent.com/green-green-avk/build-proot-android/master/packages/proot-android-arm.tar.gz",
+                "armeabi-v7a": {"url": "https://raw.githubusercontent.com/green-green-avk/build-proot-android/master/packages/proot-android-armv7a.tar.gz",
                                 "archive": "tar.gz", "size": 0, "installed_size": 5 * 1024 * 1024}}},
             {"method": "termux_package", "package": "proot"},
             {"method": "manual"},
