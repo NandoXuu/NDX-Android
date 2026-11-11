@@ -10,3 +10,5 @@ pyjnius
 plyer
 packaging
 certifi
+pip
+wheel
